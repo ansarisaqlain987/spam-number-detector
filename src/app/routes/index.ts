@@ -27,7 +27,7 @@ const useMiddleware = (h: Controller | Middleware) => {
                     return response.status(status ?? 500).send({ message, data, error });
                 }
                 throw err
-            } catch (err) {
+            } catch (err1) {
                 return response.status(500).send({ message: 'internal server error', data: null, error: err });
             }
         }
