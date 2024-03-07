@@ -1,7 +1,7 @@
 import { Request as ERequest, Response as EResponse, NextFunction as ENextFunction } from 'express';
 
-export type Request = ERequest;
-export type Response = EResponse;
+export type Request<T = any> = ERequest<any, any, T>;
+export type Response = EResponse<AppResponse>
 export type NextFunction = ENextFunction;
 export type WithAuth<T> = T & { auth?: any }
 
@@ -12,23 +12,11 @@ export type AppRoute = {
     controller: Controller
 }
 
-export type AppContext<T=any> = {
-    request: WithAuth<Request>,
-    response: Response,
-    get: (string) => string | undefined,
-    auth: any,
-    headers: {[key: string]: string | string[] | undefined},
-    query: {[key: string]: string | string[] | undefined},
-    params: {[key: string]: string},
-    body: T
-}
-
-export type ControllerResponse = {
-    status?: number,
+export type AppResponse = {
     message?: string,
     data?: any,
     error?: any,
 }
 
-export type Controller = (ctx: AppContext) => ControllerResponse | Promise<ControllerResponse>
-export type Middleware = (ctx: AppContext) => ControllerResponse | Promise<ControllerResponse> | undefined | Promise<undefined>
+export type Controller = (request: Request, response: Response) => Response | Promise<Response>
+export type Middleware = (request: Request, response: Response, next: NextFunction) => Response | Promise<Response> | undefined | Promise<undefined>

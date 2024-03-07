@@ -1,5 +1,5 @@
-import { UserModel } from "../models";
-import { AppContext, Controller, ControllerResponse } from "../types";
+import { models } from "../models";
+import { Controller, Response, Request } from "../types";
 import { z } from 'zod'
 import { createToken, decryptiString, encryptString } from "../utils/security.util";
 import { validateData } from "../utils/v.util";
@@ -9,29 +9,24 @@ const loginInputSchema = z.object({
     password: z.string()
 }).strict()
 type LoginInput = z.infer<typeof loginInputSchema>;
-const login: Controller = async (ctx: AppContext<LoginInput>): Promise<ControllerResponse> => {
-    const body = ctx.body;
+const login: Controller = async (request: Request<LoginInput>, response: Response): Promise<Response> => {
+    const { body } = request;
     validateData(loginInputSchema, body);
     const { phone, password: inputPassword } = body;
-    const user = await UserModel.findOne({ where: { phone } });
+    const user = await models.user.findOne({ where: { phone } });
     if (user === null) {
-        return {
-            status: 401,
-            message: 'user does not exist'
-        }
+        return response.status(401).send({message: 'user does not exist'});
     }
     const { password, id, name, email } = user.toJSON();
     const decPass = decryptiString(password);
     if (decPass !== inputPassword) {
-        return {
-            status: 401,
+        return response.status(401).send({
             message: 'invalid password',
-        }
+        });
     }
     const token = createToken({ id, name, email, phone });
 
-    return {
-        status: 200,
+    return response.status(200).send({
         message: 'Logged In',
         data: {
             token,
@@ -42,7 +37,7 @@ const login: Controller = async (ctx: AppContext<LoginInput>): Promise<Controlle
                 phone
             }
         }
-    }
+    })
 }
 
 
@@ -53,27 +48,25 @@ const registerInputSchema = z.object({
     email: z.string().optional(),
 }).strict()
 type RegisterInput = z.infer<typeof registerInputSchema>;
-const registerUser: Controller = async (ctx: AppContext<RegisterInput>): Promise<ControllerResponse> => {
-    const body = ctx.body;
+const registerUser: Controller = async (request: Request<RegisterInput>, response: Response): Promise<Response> => {
+    const {body} = request;
     validateData(registerInputSchema, body);
 
-    const exists = await UserModel.findOne({ where: { phone: body.phone } });
+    const exists = await models.user.findOne({ where: { phone: body.phone } });
     if (exists !== null) {
-        return {
-            status: 409,
+        return response.status(409).send({
             message: 'user with phone number already exists',
-        }
+        })
     }
 
-    const user = (await UserModel.create({
+    const user = (await models.user.create({
         phone: body.phone,
         password: encryptString(body.password),
         name: body.name?.toLowerCase().trim() ?? null,
         email: body.email?.toLowerCase().trim() ?? null
     })).toJSON();
 
-    return {
-        status: 201,
+    return response.status(201).send({
         message: 'user created',
         data: {
             id: user.id,
@@ -81,7 +74,7 @@ const registerUser: Controller = async (ctx: AppContext<RegisterInput>): Promise
             name: user.name,
             phone: user.phone
         }
-    }
+    })
 }
 
 export const UserControllers = {
